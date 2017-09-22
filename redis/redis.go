@@ -15,7 +15,7 @@ var (
 	Pool *redis.Pool
 )
 
-func init() {
+func Start() {
 	Pool = newPool(conf.Conf.Redis.Port)
 	close()
 }

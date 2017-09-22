@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/zhangxd1989/shorten/conf"
+	"github.com/zhangxd1989/shorten/redis"
 	"github.com/zhangxd1989/shorten/short"
 	"github.com/zhangxd1989/shorten/web"
 )
@@ -23,6 +24,9 @@ func main() {
 
 	// parse config
 	conf.ParseConfig(*cfgFile)
+
+	// start redis connection
+	redis.Start()
 
 	// short service
 	short.Start()
