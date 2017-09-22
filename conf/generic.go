@@ -1,9 +1,6 @@
 package conf
 
-import (
-	"log"
-	"runtime"
-)
+import "log"
 
 var Version string
 
