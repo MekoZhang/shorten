@@ -9,8 +9,12 @@ import (
 	"github.com/zhangxd1989/shorten/base"
 	"github.com/zhangxd1989/shorten/conf"
 	"github.com/zhangxd1989/shorten/sequence"
+	"github.com/garyburd/redigo/redis"
 	_ "github.com/zhangxd1989/shorten/sequence/db"
-	_ "github.com/go-sql-driver/mysql"
+	"time"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type shorter struct {
@@ -19,37 +23,77 @@ type shorter struct {
 	sequence sequence.Sequence
 }
 
-// connect will panic when it can not connect to DB server.
+var (
+	Pool *redis.Pool
+)
+
 func (shorter *shorter) connect() {
-	db, err := sql.Open("mysql", conf.Conf.ShortDB.ReadDSN)
-	if err != nil {
-		log.Panicf("short read db open error. %v", err)
+	redisHost := ":6379"
+	Pool = newPool(redisHost)
+	close()
+}
+
+func newPool(server string) *redis.Pool {
+
+	return &redis.Pool{
+
+		MaxIdle:     3,
+		IdleTimeout: 240 * time.Second,
+
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", server)
+			if err != nil {
+				return nil, err
+			}
+			return c, err
+		},
+
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
 	}
+}
 
-	err = db.Ping()
+func close() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, syscall.SIGTERM)
+	signal.Notify(c, syscall.SIGKILL)
+	go func() {
+		<-c
+		Pool.Close()
+		os.Exit(0)
+	}()
+}
+
+func get(key string) (string, error) {
+
+	conn := Pool.Get()
+	defer conn.Close()
+
+	var data []byte
+	data, err := redis.Bytes(conn.Do("GET", key))
+	dataString := string(data)
 	if err != nil {
-		log.Panicf("short read db ping error. %v", err)
+		return dataString, fmt.Errorf("error get key %s: %v", key, err)
 	}
+	return dataString, err
+}
 
-	db.SetMaxIdleConns(conf.Conf.ShortDB.MaxIdleConns)
-	db.SetMaxOpenConns(conf.Conf.ShortDB.MaxOpenConns)
+func set(key, value string) (error) {
 
-	shorter.readDB = db
+	conn := Pool.Get()
+	defer conn.Close()
 
-	db, err = sql.Open("mysql", conf.Conf.ShortDB.WriteDSN)
+	_, err := redis.Bytes(conn.Do("SET", key, value))
 	if err != nil {
-		log.Panicf("short write db open error. %v", err)
+		fmt.Println("redis set failed:", err)
 	}
-
-	err = db.Ping()
 	if err != nil {
-		log.Panicf("short write db ping error. %v", err)
+		return fmt.Errorf("error get key %s: %v", key, err)
 	}
-
-	db.SetMaxIdleConns(conf.Conf.ShortDB.MaxIdleConns)
-	db.SetMaxOpenConns(conf.Conf.ShortDB.MaxOpenConns)
-
-	shorter.writeDB = db
+	return err
 }
 
 // initSequence will panic when it can not open the sequence successfully.
@@ -67,42 +111,12 @@ func (shorter *shorter) initSequence() {
 	shorter.sequence = seq
 }
 
-func (shorter *shorter) close() {
-	if shorter.readDB != nil {
-		shorter.readDB.Close()
-		shorter.readDB = nil
-	}
-
-	if shorter.writeDB != nil {
-		shorter.writeDB.Close()
-		shorter.writeDB = nil
-	}
-}
-
 func (shorter *shorter) Expand(shortURL string) (longURL string, err error) {
-	selectSQL := fmt.Sprintf(`SELECT long_url FROM short WHERE short_url=?`)
 
-	var rows *sql.Rows
-	rows, err = shorter.readDB.Query(selectSQL, shortURL)
+	longURL, err = get(shortURL)
 	if err != nil {
-		log.Printf("short read db query error. %v", err)
-		return "", errors.New("short read db query error")
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err = rows.Scan(&longURL)
-		if err != nil {
-			log.Printf("short read db query rows scan error. %v", err)
-			return "", errors.New("short read db query rows scan error")
-		}
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Printf("short read db query rows iterate error. %v", err)
-		return "", errors.New("short read db query rows iterate error")
+		log.Printf("short db get error. %v", err)
+		return "", errors.New("short db get error")
 	}
 
 	return longURL, nil
@@ -125,20 +139,10 @@ func (shorter *shorter) Short(longURL string) (shortURL string, err error) {
 		}
 	}
 
-	insertSQL := fmt.Sprintf(`INSERT INTO short(long_url, short_url) VALUES(?, ?)`)
-
-	var stmt *sql.Stmt
-	stmt, err = shorter.writeDB.Prepare(insertSQL)
+	err = set(shortURL, longURL)
 	if err != nil {
-		log.Printf("short write db prepares error. %v", err)
-		return "", errors.New("short write db prepares error")
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(longURL, shortURL)
-	if err != nil {
-		log.Printf("short write db insert error. %v", err)
-		return "", errors.New("short write db insert error")
+		log.Printf("short db set error. %v", err)
+		return "", errors.New("short db set error")
 	}
 
 	return shortURL, nil
