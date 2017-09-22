@@ -20,6 +20,8 @@ func (dbSeq *SequenceDB) NextSequence() (sequence uint64, err error) {
 		return 0, err
 	} else {
 		sequence = uint64(lastID)
+		// started at 0. :)
+		sequence -= 1
 		return sequence, nil
 	}
 }
