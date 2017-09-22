@@ -19,11 +19,9 @@ type http struct {
 	Listen string `toml:"listen"`
 }
 
-type shortDB struct {
-	ReadDSN      string `toml:"read_dsn"`
-	WriteDSN     string `toml:"write_dsn"`
-	MaxIdleConns int    `toml:"max_idle_conns"`
-	MaxOpenConns int    `toml:"max_open_conns"`
+type redis struct {
+	Port    string `toml:"port"`
+	MaxIdle int `toml:"max_idle"`
 }
 
 type common struct {
@@ -37,8 +35,8 @@ type common struct {
 
 type config struct {
 	Http       http       `toml:"http"`
+	Redis      redis      `toml:"redis"`
 	SequenceDB sequenceDB `toml:"sequence_db"`
-	ShortDB    shortDB    `toml:"short_db"`
 	Common     common     `toml:"common"`
 }
 
