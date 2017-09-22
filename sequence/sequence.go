@@ -12,14 +12,7 @@ var (
 )
 
 type Sequence interface {
-	// Open opens the sequence generator.
-	Open() (err error)
-	// NextSequence generates next sequence integer(unsigned 64bit).
-	// If some error happens, err will not be nil and seq will be 0.
-	// Else, err will be nil and next valid sequence integer will be in seq.
 	NextSequence() (seq uint64, err error)
-	// Close closes the sequence generator.
-	Close()
 }
 
 // GetSequence returns corresponding sequence instance with the specified
