@@ -9,12 +9,6 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type sequenceDB struct {
-	DSN          string `toml:"dsn"`
-	MaxIdleConns int    `toml:"max_idle_conns"`
-	MaxOpenConns int    `toml:"max_open_conns"`
-}
-
 type http struct {
 	Listen string `toml:"listen"`
 }
@@ -36,7 +30,6 @@ type common struct {
 type config struct {
 	Http       http       `toml:"http"`
 	Redis      redis      `toml:"redis"`
-	SequenceDB sequenceDB `toml:"sequence_db"`
 	Common     common     `toml:"common"`
 }
 
