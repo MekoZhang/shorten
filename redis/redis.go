@@ -72,7 +72,7 @@ func Set(key, value string) (error) {
 	conn := Pool.Get()
 	defer conn.Close()
 
-	_, err := redis.Bytes(conn.Do("SET", key, value))
+	_, err := conn.Do("SET", key, value)
 	if err != nil {
 		fmt.Println("redis set failed:", err)
 	}
@@ -80,4 +80,17 @@ func Set(key, value string) (error) {
 		return fmt.Errorf("error get key %s: %v", key, err)
 	}
 	return err
+}
+
+func Incr(key string) (int64, error) {
+
+	conn := Pool.Get()
+	defer conn.Close()
+
+	var data int64
+	data, err := redis.Int64(conn.Do("INCR", key))
+	if err != nil {
+		return data, fmt.Errorf("error get key %s: %v", key, err)
+	}
+	return data, err
 }
