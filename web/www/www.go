@@ -9,7 +9,7 @@ import (
 func Index(w http.ResponseWriter, r *http.Request) {
 	tpl := template.New("index.html")
 	var err error
-	tpl, err = tpl.ParseFiles("template/indx.html")
+	tpl, err = tpl.ParseFiles("template/index.html")
 	if err != nil {
 		log.Printf("parse template error. %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
