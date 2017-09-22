@@ -53,7 +53,7 @@ func close() {
 	}()
 }
 
-func get(key string) (string, error) {
+func Get(key string) (string, error) {
 
 	conn := Pool.Get()
 	defer conn.Close()
@@ -67,7 +67,7 @@ func get(key string) (string, error) {
 	return dataString, err
 }
 
-func set(key, value string) (error) {
+func Set(key, value string) (error) {
 
 	conn := Pool.Get()
 	defer conn.Close()
