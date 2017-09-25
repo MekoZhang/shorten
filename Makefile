@@ -19,4 +19,4 @@ clean:
 	rm -f shorten
 
 start:
-    nohup ./shorten -c config.conf 1> shorten.out 2> shorten.err &
+	nohup ./shorten -c config.conf 1> shorten.out 2> shorten.err &
