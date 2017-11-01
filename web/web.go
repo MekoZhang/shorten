@@ -26,9 +26,5 @@ func Start() {
 	r.Handle("/static/{type}/{file}", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	r.Handle("/favicon.ico", http.StripPrefix("/", http.FileServer(http.Dir("."))))
 
-	if conf.Conf.Common.Schema == "https" {
-		log.Fatal(http.ListenAndServeTLS(conf.Conf.Http.Listen, "214310707980181.pem", "214310707980181.key", r));
-	} else {
-		log.Fatal(http.ListenAndServe(conf.Conf.Http.Listen, r))
-	}
+	log.Fatal(http.ListenAndServe(conf.Conf.Http.Listen, r))
 }
